@@ -15,19 +15,24 @@ We will use **sysbench** to test CPU and Memory overhead, and **fio** to test st
 ### 1. Initial OS Setup
 1. Install a fresh instance of RHEL 10.2 on the Dell Pro Rugged 12 Tablet.
 2. Update the system and install benchmarking tools:
-      sudo dnf update -y
-   sudo dnf install -y epel-release
-   sudo dnf install -y sysbench fio
-   ```
+```
+sudo dnf update -y
+sudo dnf install -y epel-release
+sudo dnf install -y sysbench fio
+```
 
 ### 2. Run Baseline Benchmarks
 
-**CPU Benchmark (Calculates primes up to 20000 across 4 threads):**bash
+**CPU Benchmark (Calculates primes up to 20000 across 4 threads):**
+```bash
 sysbench cpu --cpu-max-prime=20000 --threads=4 run
+```
 *(Record the "events per second" and "total time" in the Results Table)*
 
-**Memory Benchmark (Tests read/write speed):**bash
+**Memory Benchmark (Tests read/write speed):**
+```bash
 sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run
+```
 *(Record the "MiB transferred" and "Total operations" in the Results Table)*
 
 ---
@@ -37,15 +42,19 @@ sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run
 ### 1. K3s Installation
 Since K3s is a single-binary Kubernetes distribution, installation is very quick.bash
 # Install K3s
+```bash
 curl -sfL https://get.k3s.io | sh -
-
+```
 # Verify node is ready
+```bash
 sudo k3s kubectl get nodes
+```
 
 ### 2. Run K3s Benchmarks
 We will deploy a Kubernetes Job that spins up an Ubuntu container, installs sysbench, and runs the same tests.
 
 Create a file named `k3s-bench.yaml`:yaml
+```
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -65,12 +74,17 @@ spec:
             sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run;
       restartPolicy: Never
   backoffLimit: 0
+```
 
-Apply and read the logs:bash
+Apply and read the logs:
+```bash
 sudo k3s kubectl apply -f k3s-bench.yaml
+```
 
 # Wait for the job to complete, then view the results:
+```bash
 sudo k3s kubectl logs job/benchmark-job-cpu-mem
+```
 *(Record the results in the Results Table)*
 
 ---
@@ -79,27 +93,31 @@ sudo k3s kubectl logs job/benchmark-job-cpu-mem
 
 ### 1. RKE2 Installation
 **Important:** Wipe the OS and perform a fresh install of RHEL 10.2 to ensure there is no artifacting from K3s.
-bash
 # Install RKE2 (Rancher Kubernetes Engine 2)
+```bash
 curl -sfL https://get.rke2.io | sudo sh -
-
+```
 # Enable and start the RKE2 server service
+```bash
 sudo systemctl enable rke2-server.service
 sudo systemctl start rke2-server.service
-
+```
 # Symlink kubectl for ease of use
+```bash
 sudo ln -s /var/lib/rancher/rke2/bin/kubectl /usr/local/bin/kubectl
 export KUBECONFIG=/etc/rancher/rke2/rke2.yaml
-
+```
 # Verify node is ready
+```bash
 kubectl get nodes
-
+```
 ### 2. Run RKE2 Benchmarks
 Deploy the exact same job used in Phase 2.
-bash
+```bash
 kubectl apply -f k3s-bench.yaml
-
+```
 # Wait for the job to complete, then view the results:
+```bash
 kubectl logs job/benchmark-job-cpu-mem
 ```
 *(Record the results in the Results Table)*
@@ -110,14 +128,14 @@ kubectl logs job/benchmark-job-cpu-mem
 
 ### CPU Performance (Higher Events/sec is better)
 | Environment | Events per Second | Total Time (s) | 95th Percentile Latency (ms) |
-|-------------|-------------------|----------------|------------------------------|
+|:-------------|:-------------------|:----------------|:------------------------------|
 | RHEL 10.2 (Baseline) | | | |
 | K3s Container | | | |
 | RKE2 Container | | | |
 
 ### Memory Performance (Higher MiB/sec is better)
 | Environment | Total Operations | Transfer Rate (MiB/sec) | 95th Percentile Latency (ms) |
-|-------------|------------------|-------------------------|------------------------------|
+|:-------------|:------------------|:-------------------------|:------------------------------|
 | RHEL 10.2 (Baseline) | | | |
 | K3s Container | | | |
 | RKE2 Container | | | |
