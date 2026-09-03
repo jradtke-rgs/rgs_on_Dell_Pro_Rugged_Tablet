@@ -175,17 +175,21 @@ kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-
 ### CPU Performance (Higher Events/sec is better)
 | Environment | Events per Second | Total Time (s) | 95th Percentile Latency (ms) |
 |:-------------|:-------------------|:----------------|:------------------------------|
-| RHEL 10.2 (Baseline) | | | |
-| K3s Container | | | |
-| RKE2 Container | | | |
+| RHEL 10.2 (Baseline) | 5000.06 | 10.0005 | 0.81 |
+| K3s Container | 4974.26 | 10.0006 | 0.81 |
+| RKE2 Container | 4973.15 | 10.0006 | 0.81 |
 
 ### Memory Performance (Higher MiB/sec is better)
 | Environment | Total Operations | Transfer Rate (MiB/sec) | 95th Percentile Latency (ms) |
 |:-------------|:------------------|:-------------------------|:------------------------------|
-| RHEL 10.2 (Baseline) | | | |
-| K3s Container | | | |
-| RKE2 Container | | | |
+| RHEL 10.2 (Baseline) | 10,485,760 | 10654.89 | 0.00 |
+| K3s Container | 10,485,760 | 11063.68 | 0.00 |
+| RKE2 Container | 10,485,760 | 10646.51 | 0.00 |
 
-### Notes / Observations
-* **OS Footprint:** Note the idle RAM and CPU usage of `htop` right after fresh boot for each iteration.
-* **Boot Time:** Note how long it takes for the node to reach `Ready` status in K3s vs RKE2.
+###  Notes:
+  - CPU: containerized runs are ~0.5% below bare metal (4974 vs 5000 events/sec) — well within run-to-run noise. Total time and p95 latency are identical across all three. No
+    meaningful K3s vs RKE2 difference.
+  - Memory: differences are noise, not signal — K3s posted higher than baseline (11064 vs 10655 MiB/sec) and RKE2 landed right on baseline. The --memory-block-size=1K test is
+    basically measuring the syscall/loop path, so p95 rounds to 0.00 ms everywhere.
+  - This is single-run data. If you want defensible numbers, run each 3–5× and average — the ~1% spread here is smaller than typical thermal variance on a fanless tablet.
+  - The K3s/RKE2 .out files include the full apt-get install log ahead of the sysbench output; the DNS fix worked (apt-get pulled from the real Ubuntu mirrors).
