@@ -1,0 +1,240 @@
+Get:1 http://security.ubuntu.com/ubuntu resolute-security InRelease [137 kB]
+Get:2 http://archive.ubuntu.com/ubuntu resolute InRelease [136 kB]
+Get:3 http://security.ubuntu.com/ubuntu resolute-security/restricted amd64 Packages [444 kB]
+Get:4 http://security.ubuntu.com/ubuntu resolute-security/universe amd64 Packages [212 kB]
+Get:5 http://security.ubuntu.com/ubuntu resolute-security/main amd64 Packages [546 kB]
+Get:6 http://archive.ubuntu.com/ubuntu resolute-updates InRelease [137 kB]
+Get:7 http://security.ubuntu.com/ubuntu resolute-security/multiverse amd64 Packages [11.2 kB]
+Get:8 http://archive.ubuntu.com/ubuntu resolute-backports InRelease [137 kB]
+Get:9 http://archive.ubuntu.com/ubuntu resolute/universe amd64 Packages [20.1 MB]
+Get:10 http://archive.ubuntu.com/ubuntu resolute/multiverse amd64 Packages [352 kB]
+Get:11 http://archive.ubuntu.com/ubuntu resolute/restricted amd64 Packages [189 kB]
+Get:12 http://archive.ubuntu.com/ubuntu resolute/main amd64 Packages [1874 kB]
+Get:13 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 Packages [743 kB]
+Get:14 http://archive.ubuntu.com/ubuntu resolute-updates/restricted amd64 Packages [502 kB]
+Get:15 http://archive.ubuntu.com/ubuntu resolute-updates/multiverse amd64 Packages [14.3 kB]
+Get:16 http://archive.ubuntu.com/ubuntu resolute-updates/universe amd64 Packages [338 kB]
+Get:17 http://archive.ubuntu.com/ubuntu resolute-backports/universe amd64 Packages [3306 B]
+Fetched 25.9 MB in 3s (7838 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+Solving dependencies...
+The following additional packages will be installed:
+  ca-certificates krb5-locales libaio1t64 libgssapi-krb5-2 libk5crypto3
+  libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2
+  libluajit-5.1-2 libluajit-5.1-common libmysqlclient24 libpq5 libsasl2-2
+  libsasl2-modules libsasl2-modules-db mysql-common openssl
+Suggested packages:
+  krb5-doc krb5-user libpq-oauth libsasl2-modules-gssapi-mit
+  | libsasl2-modules-gssapi-heimdal libsasl2-modules-ldap libsasl2-modules-otp
+  libsasl2-modules-sql
+The following NEW packages will be installed:
+  ca-certificates krb5-locales libaio1t64 libgssapi-krb5-2 libk5crypto3
+  libkeyutils1 libkrb5-3 libkrb5support0 libldap-common libldap2
+  libluajit-5.1-2 libluajit-5.1-common libmysqlclient24 libpq5 libsasl2-2
+  libsasl2-modules libsasl2-modules-db mysql-common openssl sysbench
+0 upgraded, 20 newly installed, 0 to remove and 24 not upgraded.
+Need to get 4302 kB of archives.
+After this operation, 14.9 MB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 openssl amd64 3.5.5-1ubuntu3.5 [1243 kB]
+Get:2 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 ca-certificates all 20260601~26.04.1 [139 kB]
+Get:3 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 krb5-locales all 1.22.1-2ubuntu4.1 [13.6 kB]
+Get:4 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libkrb5support0 amd64 1.22.1-2ubuntu4.1 [33.5 kB]
+Get:5 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libk5crypto3 amd64 1.22.1-2ubuntu4.1 [82.0 kB]
+Get:6 http://archive.ubuntu.com/ubuntu resolute/main amd64 libkeyutils1 amd64 1.6.3-6ubuntu3 [10.6 kB]
+Get:7 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libkrb5-3 amd64 1.22.1-2ubuntu4.1 [361 kB]
+Get:8 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libgssapi-krb5-2 amd64 1.22.1-2ubuntu4.1 [147 kB]
+Get:9 http://archive.ubuntu.com/ubuntu resolute/main amd64 libaio1t64 amd64 0.3.113-8build1 [7356 B]
+Get:10 http://archive.ubuntu.com/ubuntu resolute/main amd64 libldap-common all 2.6.10+dfsg-1ubuntu5 [36.0 kB]
+Get:11 http://archive.ubuntu.com/ubuntu resolute/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg1-9ubuntu3 [21.1 kB]
+Get:12 http://archive.ubuntu.com/ubuntu resolute/main amd64 libsasl2-2 amd64 2.1.28+dfsg1-9ubuntu3 [54.0 kB]
+Get:13 http://archive.ubuntu.com/ubuntu resolute/main amd64 libldap2 amd64 2.6.10+dfsg-1ubuntu5 [204 kB]
+Get:14 http://archive.ubuntu.com/ubuntu resolute/universe amd64 libluajit-5.1-common all 2.1.0+openresty20251030-1 [54.7 kB]
+Get:15 http://archive.ubuntu.com/ubuntu resolute/universe amd64 libluajit-5.1-2 amd64 2.1.0+openresty20251030-1 [285 kB]
+Get:16 http://archive.ubuntu.com/ubuntu resolute/main amd64 mysql-common all 5.8+1.1.1ubuntu2 [7002 B]
+Get:17 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libmysqlclient24 amd64 8.4.11-0ubuntu0.26.04.1 [1256 kB]
+Get:18 http://archive.ubuntu.com/ubuntu resolute-updates/main amd64 libpq5 amd64 18.6-0ubuntu0.26.04.1 [163 kB]
+Get:19 http://archive.ubuntu.com/ubuntu resolute/main amd64 libsasl2-modules amd64 2.1.28+dfsg1-9ubuntu3 [71.3 kB]
+Get:20 http://archive.ubuntu.com/ubuntu resolute/universe amd64 sysbench amd64 1.0.20+ds-7build2 [113 kB]
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8, <STDIN> line 20.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Preconfiguring packages ...
+Fetched 4302 kB in 2s (2408 kB/s)
+Selecting previously unselected package openssl.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 7724 files and directories currently installed.)
+Preparing to unpack .../00-openssl_3.5.5-1ubuntu3.5_amd64.deb ...
+Unpacking openssl (3.5.5-1ubuntu3.5) ...
+Selecting previously unselected package ca-certificates.
+Preparing to unpack .../01-ca-certificates_20260601~26.04.1_all.deb ...
+Unpacking ca-certificates (20260601~26.04.1) ...
+Selecting previously unselected package krb5-locales.
+Preparing to unpack .../02-krb5-locales_1.22.1-2ubuntu4.1_all.deb ...
+Unpacking krb5-locales (1.22.1-2ubuntu4.1) ...
+Selecting previously unselected package libkrb5support0:amd64.
+Preparing to unpack .../03-libkrb5support0_1.22.1-2ubuntu4.1_amd64.deb ...
+Unpacking libkrb5support0:amd64 (1.22.1-2ubuntu4.1) ...
+Selecting previously unselected package libk5crypto3:amd64.
+Preparing to unpack .../04-libk5crypto3_1.22.1-2ubuntu4.1_amd64.deb ...
+Unpacking libk5crypto3:amd64 (1.22.1-2ubuntu4.1) ...
+Selecting previously unselected package libkeyutils1:amd64.
+Preparing to unpack .../05-libkeyutils1_1.6.3-6ubuntu3_amd64.deb ...
+Unpacking libkeyutils1:amd64 (1.6.3-6ubuntu3) ...
+Selecting previously unselected package libkrb5-3:amd64.
+Preparing to unpack .../06-libkrb5-3_1.22.1-2ubuntu4.1_amd64.deb ...
+Unpacking libkrb5-3:amd64 (1.22.1-2ubuntu4.1) ...
+Selecting previously unselected package libgssapi-krb5-2:amd64.
+Preparing to unpack .../07-libgssapi-krb5-2_1.22.1-2ubuntu4.1_amd64.deb ...
+Unpacking libgssapi-krb5-2:amd64 (1.22.1-2ubuntu4.1) ...
+Selecting previously unselected package libaio1t64:amd64.
+Preparing to unpack .../08-libaio1t64_0.3.113-8build1_amd64.deb ...
+Unpacking libaio1t64:amd64 (0.3.113-8build1) ...
+Selecting previously unselected package libldap-common.
+Preparing to unpack .../09-libldap-common_2.6.10+dfsg-1ubuntu5_all.deb ...
+Unpacking libldap-common (2.6.10+dfsg-1ubuntu5) ...
+Selecting previously unselected package libsasl2-modules-db:amd64.
+Preparing to unpack .../10-libsasl2-modules-db_2.1.28+dfsg1-9ubuntu3_amd64.deb ...
+Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Selecting previously unselected package libsasl2-2:amd64.
+Preparing to unpack .../11-libsasl2-2_2.1.28+dfsg1-9ubuntu3_amd64.deb ...
+Unpacking libsasl2-2:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Selecting previously unselected package libldap2:amd64.
+Preparing to unpack .../12-libldap2_2.6.10+dfsg-1ubuntu5_amd64.deb ...
+Unpacking libldap2:amd64 (2.6.10+dfsg-1ubuntu5) ...
+Selecting previously unselected package libluajit-5.1-common.
+Preparing to unpack .../13-libluajit-5.1-common_2.1.0+openresty20251030-1_all.deb ...
+Unpacking libluajit-5.1-common (2.1.0+openresty20251030-1) ...
+Selecting previously unselected package libluajit-5.1-2:amd64.
+Preparing to unpack .../14-libluajit-5.1-2_2.1.0+openresty20251030-1_amd64.deb ...
+Unpacking libluajit-5.1-2:amd64 (2.1.0+openresty20251030-1) ...
+Selecting previously unselected package mysql-common.
+Preparing to unpack .../15-mysql-common_5.8+1.1.1ubuntu2_all.deb ...
+Unpacking mysql-common (5.8+1.1.1ubuntu2) ...
+Selecting previously unselected package libmysqlclient24:amd64.
+Preparing to unpack .../16-libmysqlclient24_8.4.11-0ubuntu0.26.04.1_amd64.deb ...
+Unpacking libmysqlclient24:amd64 (8.4.11-0ubuntu0.26.04.1) ...
+Selecting previously unselected package libpq5:amd64.
+Preparing to unpack .../17-libpq5_18.6-0ubuntu0.26.04.1_amd64.deb ...
+Unpacking libpq5:amd64 (18.6-0ubuntu0.26.04.1) ...
+Selecting previously unselected package libsasl2-modules:amd64.
+Preparing to unpack .../18-libsasl2-modules_2.1.28+dfsg1-9ubuntu3_amd64.deb ...
+Unpacking libsasl2-modules:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Selecting previously unselected package sysbench.
+Preparing to unpack .../19-sysbench_1.0.20+ds-7build2_amd64.deb ...
+Unpacking sysbench (1.0.20+ds-7build2) ...
+Setting up mysql-common (5.8+1.1.1ubuntu2) ...
+update-alternatives: using /etc/mysql/my.cnf.fallback to provide /etc/mysql/my.cnf (my.cnf) in auto mode
+Setting up libkeyutils1:amd64 (1.6.3-6ubuntu3) ...
+Setting up libsasl2-modules:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Setting up krb5-locales (1.22.1-2ubuntu4.1) ...
+Setting up libldap-common (2.6.10+dfsg-1ubuntu5) ...
+Setting up libmysqlclient24:amd64 (8.4.11-0ubuntu0.26.04.1) ...
+Setting up libkrb5support0:amd64 (1.22.1-2ubuntu4.1) ...
+Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Setting up libluajit-5.1-common (2.1.0+openresty20251030-1) ...
+Setting up libk5crypto3:amd64 (1.22.1-2ubuntu4.1) ...
+Setting up libsasl2-2:amd64 (2.1.28+dfsg1-9ubuntu3) ...
+Setting up libaio1t64:amd64 (0.3.113-8build1) ...
+Setting up libkrb5-3:amd64 (1.22.1-2ubuntu4.1) ...
+Setting up openssl (3.5.5-1ubuntu3.5) ...
+Setting up libldap2:amd64 (2.6.10+dfsg-1ubuntu5) ...
+Setting up libluajit-5.1-2:amd64 (2.1.0+openresty20251030-1) ...
+Setting up ca-certificates (20260601~26.04.1) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (TERM is not set, so the dialog frontend is not usable.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC entries checked: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.40.1 /usr/local/share/perl/5.40.1 /usr/lib/x86_64-linux-gnu/perl5/5.40 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.40 /usr/share/perl/5.40 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 8.)
+debconf: falling back to frontend: Teletype
+debconf: unable to initialize frontend: Teletype
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Noninteractive
+Updating certificates in /etc/ssl/certs...
+121 added, 0 removed; done.
+Setting up libgssapi-krb5-2:amd64 (1.22.1-2ubuntu4.1) ...
+Setting up libpq5:amd64 (18.6-0ubuntu0.26.04.1) ...
+Setting up sysbench (1.0.20+ds-7build2) ...
+Processing triggers for libc-bin (2.43-2ubuntu2.3) ...
+Processing triggers for ca-certificates (20260601~26.04.1) ...
+Updating certificates in /etc/ssl/certs...
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+--- CPU TEST ---
+sysbench 1.0.20 (using system LuaJIT 2.1.1761786044)
+
+Running the test with following options:
+Number of threads: 4
+Initializing random number generator from current time
+
+
+Prime numbers limit: 20000
+
+Initializing worker threads...
+
+Threads started!
+
+CPU speed:
+    events per second:  4973.15
+
+General statistics:
+    total time:                          10.0006s
+    total number of events:              49743
+
+Latency (ms):
+         min:                                    0.44
+         avg:                                    0.80
+         max:                                    2.66
+         95th percentile:                        0.81
+         sum:                                39994.99
+
+Threads fairness:
+    events (avg/stddev):           12435.7500/14.69
+    execution time (avg/stddev):   9.9987/0.00
+
+--- MEMORY TEST ---
+sysbench 1.0.20 (using system LuaJIT 2.1.1761786044)
+
+Running the test with following options:
+Number of threads: 4
+Initializing random number generator from current time
+
+
+Running memory speed test with the following options:
+  block size: 1KiB
+  total size: 10240MiB
+  operation: write
+  scope: global
+
+Initializing worker threads...
+
+Threads started!
+
+Total operations: 10485760 (10902028.03 per second)
+
+10240.00 MiB transferred (10646.51 MiB/sec)
+
+
+General statistics:
+    total time:                          0.9597s
+    total number of events:              10485760
+
+Latency (ms):
+         min:                                    0.00
+         avg:                                    0.00
+         max:                                    0.05
+         95th percentile:                        0.00
+         sum:                                 2970.23
+
+Threads fairness:
+    events (avg/stddev):           2621440.0000/0.00
+    execution time (avg/stddev):   0.7426/0.01
+

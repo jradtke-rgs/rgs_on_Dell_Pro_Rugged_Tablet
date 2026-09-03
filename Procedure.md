@@ -45,14 +45,14 @@ mkdir -p ~/Results/RHEL-10.2-RKE2
 
 ### 2. Run Baseline Benchmarks
 
-**CPU Benchmark (Calculates primes up to 20000 across 4 threads):**
+#### CPU Benchmark (Calculates primes up to 20000 across 4 threads)
 ```bash
 echo "--- CPU TEST ---" | tee ~/Results/RHEL-10.2/sysbench-cpu-mem.out
 sysbench cpu --cpu-max-prime=20000 --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
 ```
 *(Record the "events per second" and "total time" in the Results Table)*
 
-**Memory Benchmark (Tests read/write speed):**
+#### Memory Benchmark (Tests read/write speed)
 ```bash
 echo "--- MEMORY TEST ---" | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
 sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
@@ -65,7 +65,8 @@ sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run |
 
 ### 1. K3s Installation
 Since K3s is a single-binary Kubernetes distribution, installation is very quick.  I did not pin to a specific version - if I was doing this task repeatedly and over time, I would probably either pin, or record the results with the version number as a reference.
-# Install K3s
+
+#### Install K3s
 ```bash
 curl -sfL https://get.k3s.io | sh -
 mkdir ~/.kube
@@ -75,7 +76,7 @@ echo "export KUBECONFIG=~/.kube/config" | tee -a ~/.bashrc
 . ~/.bashrc
 ```
 
-# Verify node is ready
+#### Verify node is ready
 ```bash
 k3s kubectl get nodes
 ```
@@ -83,7 +84,7 @@ k3s kubectl get nodes
 ### 2. Run K3s Benchmarks
 We will deploy a Kubernetes Job that spins up an Ubuntu container, installs sysbench, and runs the same tests.
 
-Create a file named `k3s-bench.yaml`:yaml
+#### Create the Job manifest `k3s-bench.yaml`
 ```
 cat << EOF | tee k3s-bench.yaml
 apiVersion: batch/v1
@@ -117,18 +118,18 @@ spec:
 EOF
 ```
 
-Apply and read the logs:
+#### Apply the benchmark Job
 ```bash
 kubectl apply -f k3s-bench.yaml
 ```
 
-# Wait for the job to complete, then view the results:
+#### Wait for the job to complete, then view the results
 ```bash
 k3s kubectl logs job/benchmark-job-cpu-mem | tee ~/Results/RHEL-10.2-K3s/sysbench-cpu-mem.out
 ```
 *(Record the results in the Results Table)*
 
-# Uninstall K3s
+#### Uninstall K3s
 ```bash
  sudo /usr/local/bin/k3s-uninstall.sh
 ```
@@ -138,31 +139,35 @@ k3s kubectl logs job/benchmark-job-cpu-mem | tee ~/Results/RHEL-10.2-K3s/sysbenc
 
 ### 1. RKE2 Installation
 **Important:** Wipe the OS and perform a fresh install of RHEL 10.2 to ensure there is no artifacting from K3s.
-# Install RKE2 (Rancher Kubernetes Engine 2)
+
+#### Install RKE2 (Rancher Kubernetes Engine 2)
 ```bash
 curl -sfL https://get.rke2.io | sudo sh -
 ```
-# Enable and start the RKE2 server service
+#### Enable and start the RKE2 server service
 ```bash
 sudo systemctl enable rke2-server.service
 sudo systemctl start rke2-server.service
 ```
-# Symlink kubectl for ease of use
+#### Symlink kubectl for ease of use
 ```bash
 sudo ln -s /var/lib/rancher/rke2/bin/kubectl /usr/local/bin/kubectl
 sudo cat /etc/rancher/rke2/rke2.yaml | tee ~/.kube/config
 export KUBECONFIG=~/.kube/config
 ```
-# Verify node is ready
+#### Verify node is ready
 ```bash
 kubectl get nodes
 ```
 ### 2. Run RKE2 Benchmarks
 Deploy the exact same job used in Phase 2.
+
+#### Apply the benchmark Job
 ```bash
 kubectl apply -f k3s-bench.yaml
 ```
-# Wait for the job to complete, then view the results:
+
+#### Wait for the job to complete, then view the results
 ```bash
 kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-cpu-mem.out
 ```
@@ -186,7 +191,7 @@ kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-
 | K3s Container | 10,485,760 | 11063.68 | 0.00 |
 | RKE2 Container | 10,485,760 | 10646.51 | 0.00 |
 
-###  Notes:
+### Notes
   - CPU: containerized runs are ~0.5% below bare metal (4974 vs 5000 events/sec) — well within run-to-run noise. Total time and p95 latency are identical across all three. No
     meaningful K3s vs RKE2 difference.
   - Memory: differences are noise, not signal — K3s posted higher than baseline (11064 vs 10655 MiB/sec) and RKE2 landed right on baseline. The --memory-block-size=1K test is
