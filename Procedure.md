@@ -175,6 +175,64 @@ kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-
 
 ---
 
+## Phase 4: Rancher Manager Installation (Common to K3s and RKE2)
+
+This phase is identical regardless of which distribution is currently running — Rancher Manager is deployed via Helm on top of whichever cluster (K3s or RKE2) is up at the time. Run this after standing up either cluster if you want to evaluate Rancher's management overhead alongside the raw sysbench/fio numbers.
+
+### 1. Install Helm
+```bash
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+### 2. Add the Rancher and Jetstack (cert-manager) Helm repos
+```bash
+helm repo add rancher-latest https://releases.rancher.com/server-charts/latest
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+```
+
+### 3. Install cert-manager
+Rancher requires cert-manager for TLS unless you bring your own certificates.
+```bash
+kubectl create namespace cert-manager
+helm install cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --set crds.enabled=true
+```
+
+#### Verify cert-manager pods are running
+```bash
+kubectl get pods --namespace cert-manager
+```
+
+### 4. Install Rancher Manager
+Replace `rancher.example.local` with the hostname/IP you'll use to reach the UI, and choose a real bootstrap password.
+```bash
+kubectl create namespace cattle-system
+helm install rancher rancher-latest/rancher \
+  --namespace cattle-system \
+  --set hostname=rancher.example.local \
+  --set bootstrapPassword=admin123
+```
+
+#### Wait for the Rancher deployment to roll out
+```bash
+kubectl -n cattle-system rollout status deploy/rancher
+```
+
+### 5. Access Rancher
+Browse to `https://rancher.example.local` (or the IP you set as `hostname`) and log in using the bootstrap password set above. You'll be prompted to set a new admin password and confirm the server URL on first login.
+
+### 6. Uninstall Rancher (between iterations)
+If you're re-running this phase against both K3s and RKE2 in turn, tear Rancher down before wiping/reinstalling the underlying cluster:
+```bash
+helm uninstall rancher --namespace cattle-system
+helm uninstall cert-manager --namespace cert-manager
+kubectl delete namespace cattle-system cert-manager
+```
+
+---
+
 ## Results Tracking Matrix
 
 ### CPU Performance (Higher Events/sec is better)
