@@ -1,4 +1,7 @@
-# Kubernetes Performance Benchmark on Dell Pro Rugged 12 (RA02260)
+# Kubernetes Performance Benchmark on Dell Pro Rugged Tablet 12 (RA02260)
+
+> [!NOTE]
+> If the primary interface for the Tablet changes, you will need to update the config. (procedure will be towards bottom of this doc)
 
 This document outlines the end-to-end process for benchmarking bare-metal Red Hat Enterprise Linux (RHEL) 10.2 against two lightweight Kubernetes distributions (K3s and RKE2). You can update the tables at the bottom as you complete each iteration.
 
@@ -256,3 +259,18 @@ kubectl delete namespace cattle-system cert-manager
     basically measuring the syscall/loop path, so p95 rounds to 0.00 ms everywhere.
   - This is single-run data. If you want defensible numbers, run each 3–5× and average — the ~1% spread here is smaller than typical thermal variance on a fanless tablet.
   - The K3s/RKE2 .out files include the full apt-get install log ahead of the sysbench output; the DNS fix worked (apt-get pulled from the real Ubuntu mirrors).
+
+---
+
+## Troubleshooting and Maintenance
+
+### Reset config after IP change
+```
+  sudo systemctl stop rke2-server
+  sudo rke2 server --cluster-reset
+  # wait for "cluster-reset: TRUE" style completion, then Ctrl+C is not needed — it exits on its own
+  sudo systemctl start rke2-server
+  sudo systemctl status rke2-server
+```
+
+
