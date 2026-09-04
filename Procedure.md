@@ -143,6 +143,8 @@ k3s kubectl logs job/benchmark-job-cpu-mem | tee ~/Results/RHEL-10.2-K3s/sysbenc
 ### 1. RKE2 Installation
 **Important:** Wipe the OS and perform a fresh install of RHEL 10.2 to ensure there is no artifacting from K3s.
 
+**Prerequisite:** `post_install.sh` sets firewalld's backend to `iptables` before this runs. If you skip that step (or restore a snapshot from before it existed), do it before installing RKE2 -- otherwise pod-to-pod traffic gets silently blocked once you're running more than a single-pod workload (see Troubleshooting).
+
 #### Install RKE2 (Rancher Kubernetes Engine 2)
 ```bash
 curl -sfL https://get.rke2.io | sudo sh -
@@ -210,11 +212,13 @@ kubectl get pods --namespace cert-manager
 
 ### 4. Install Rancher Manager
 Replace `rancher.example.local` with the hostname/IP you'll use to reach the UI, and choose a real bootstrap password.
+NOTE:  I created a DNS entry for this exercise
+
 ```bash
 kubectl create namespace cattle-system
 helm install rancher rancher-latest/rancher \
   --namespace cattle-system \
-  --set hostname=rancher.example.local \
+  --set hostname=rancher-test.community.kubernerdes.com \
   --set bootstrapPassword=admin123
 ```
 
@@ -223,10 +227,21 @@ helm install rancher rancher-latest/rancher \
 kubectl -n cattle-system rollout status deploy/rancher
 ```
 
-### 5. Access Rancher
-Browse to `https://rancher.example.local` (or the IP you set as `hostname`) and log in using the bootstrap password set above. You'll be prompted to set a new admin password and confirm the server URL on first login.
+### 5. Expose Traefik on the node (required for external access)
+**Confirmed on a from-scratch install** (not just this one instance): RKE2 v1.36.4+rke2r1 ships `rke2-traefik` as `type: ClusterIP` by default -- nothing binds the node's real interface out of the box, so the ingress/DNS/cert setup above is correct but unreachable from a browser until you patch it. RKE2's built-in ServiceLB is expected to pick up a `LoadBalancer`-type Service and bind the node automatically; on this hardware it hasn't (no `svclb-*` pod appears), but the patch still gets you a working NodePort even without it:
+```bash
+kubectl -n kube-system patch svc rke2-traefik -p '{"spec":{"type":"LoadBalancer"}}'
+kubectl -n kube-system get svc rke2-traefik
+```
+Note the allocated NodePort for `443` (e.g. `443:32051/TCP`) in the output. If an `EXTERNAL-IP` never appears (stays `<pending>`) and no `svclb-rke2-traefik-*` pod shows up under `kubectl -n kube-system get pods`, ServiceLB isn't reconciling on this box -- access via the NodePort instead: `https://<hostname>:<nodeport>/`.
 
-### 6. Uninstall Rancher (between iterations)
+### 6. Access Rancher
+Browse to `https://rancher-test.community.kubernerdes.com` (or `https://<hostname-or-IP>:<nodeport>/`, per step 5) and log in using the bootstrap password set above. You'll be prompted to set a new admin password and confirm the server URL on first login.
+
+> [!WARNING]
+> **Known issue, not yet resolved:** After a fresh install, all 3 Rancher replica pods can sit for 15+ minutes with *neither* port 80 nor 443 bound inside the container (confirmed via `/proc/<pid>/net/tcp` on the node), even though `kubectl get pods` reports `1/1 Running` and a stable HA leader lease exists. Logs show continuous `Failed to connect to peer wss://... connect: connection refused` between replicas and repeated `Active TLS secret cattle-system/tls-rancher-internal` regeneration. Root cause not yet identified -- ruled out so far: firewalld/CNI blocking (fixed separately, confirmed via nft counters), host memory pressure (30Gi RAM, only ~8Gi used), and CCM instability (its 8 restarts lined up with the etcd `--cluster-reset` timestamp, not with this). If you hit this, check `kubectl -n cattle-system logs deploy/rancher --tail=30` and `/proc/<pid>/net/tcp` on the node for each `rancher` process before assuming it's just still starting up.
+
+### 7. Uninstall Rancher (between iterations)
 If you're re-running this phase against both K3s and RKE2 in turn, tear Rancher down before wiping/reinstalling the underlying cluster:
 ```bash
 helm uninstall rancher --namespace cattle-system
@@ -265,12 +280,70 @@ kubectl delete namespace cattle-system cert-manager
 ## Troubleshooting and Maintenance
 
 ### Reset config after IP change
-```
+Symptom: `systemctl status rke2-server` sits in `activating (start)` indefinitely, and `journalctl -u rke2-server` repeats `Failed to test etcd connection: this server is not a member of the etcd cluster. Found [...old-ip...], expect [...new-ip...]`. Single-node embedded etcd bakes the node's IP into its membership list at bootstrap; a later IP change leaves it unable to match itself.
+```bash
   sudo systemctl stop rke2-server
   sudo rke2 server --cluster-reset
-  # wait for "cluster-reset: TRUE" style completion, then Ctrl+C is not needed — it exits on its own
+  # wait for "Managed etcd cluster membership has been reset, restart without --cluster-reset flag now" -- it exits on its own
   sudo systemctl start rke2-server
   sudo systemctl status rke2-server
 ```
+Certs get auto-backed up to `/var/lib/rancher/rke2/server/tls-<timestamp>/` as part of the reset -- no separate backup step needed.
+
+**Clean up the stale node object.** The reset changes the etcd member's identity, but the *old* `Node` object (registered under the old hostname/IP, e.g. `dhcp-40.evil.corp`) stays behind as `Ready` even though nothing is running there. Every DaemonSet/Deployment pod still scheduled on it (CNI, cert-manager, CoreDNS, your own workloads) will sit in `ContainerCreating`/`CrashLoopBackOff` until you remove it:
+```bash
+kubectl get nodes                    # confirm the stale entry (old hostname/IP) alongside the current one
+kubectl delete node <stale-node-name>
+kubectl get pods -A -o wide | grep -v -E 'Running|Completed'   # confirm everything reschedules onto the real node
+```
+
+### firewalld nftables backend blocks pod-to-pod traffic
+`post_install.sh` now sets `FirewallBackend=iptables` up front, so this shouldn't recur -- but if you're troubleshooting an older/skipped setup: symptom is `dial tcp <pod-ip>:<port>: connect: no route to host` between pods **on the same node** (external ingress traffic and node-to-pod traffic can work fine while this is broken -- it specifically hits the FORWARD chain that pod-to-pod traffic traverses). Confirm via `sudo grep FirewallBackend /etc/firewalld/firewalld.conf`, then:
+```bash
+sudo sed -i 's/^FirewallBackend=.*/FirewallBackend=iptables/' /etc/firewalld/firewalld.conf
+sudo systemctl restart firewalld
+```
+
+### `rke2-uninstall.sh` location differs by install method
+The tar.gz-based RKE2 install (older docs, and `get.rke2.io` on non-RPM systems) puts the uninstall script at `/usr/local/bin/rke2-uninstall.sh`. On RHEL 10.2, `get.rke2.io` installs via `dnf`/RPM instead, which puts it at **`/usr/bin/rke2-uninstall.sh`**. Check both if one isn't found.
+
+### Diagnosing "is the app actually listening" -- check IPv6 too
+`/proc/net/tcp` only shows IPv4 sockets. Go binaries (including Rancher) commonly call `net.Listen("tcp", ":PORT")`, which binds an **IPv6 dual-stack** socket visible only in `/proc/net/tcp6` -- it still accepts IPv4 connections transparently, but checking only `/proc/net/tcp` (or `ss`/`netstat` without `-6`/both families) will make a genuinely healthy listener look absent. Learned this the hard way after a multi-hour investigation built on an IPv4-only check. Always check both:
+```bash
+kubectl exec <pod> -- awk '$4=="0A"' /proc/net/tcp    # IPv4 LISTEN
+kubectl exec <pod> -- awk '$4=="0A"' /proc/net/tcp6   # IPv6 LISTEN
+```
+
+### RKE2 1.35+ defaults to ingress-nginx, not Traefik
+Somewhere between RKE2 1.35 and 1.36 the bundled default ingress controller changed. On 1.35.7, `kubectl -n kube-system get svc rke2-traefik` returns `NotFound`; the controller is `rke2-ingress-nginx-controller` instead, deployed as a DaemonSet with `hostPort: 80/443` declared on the container (no separate Service is created by default). If `hostPort` doesn't actually bind on the node (check `sudo ss -tlnp`), the workaround mirrors the Traefik one -- create a `LoadBalancer`-type Service selecting the controller's pods and use the allocated NodePort:
+```bash
+kubectl -n cattle-system patch ingress rancher --type=merge -p '{"spec":{"ingressClassName":"nginx"}}'
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: rke2-ingress-nginx-controller
+  namespace: kube-system
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: rke2-ingress-nginx
+    app.kubernetes.io/name: rke2-ingress-nginx
+  ports:
+  - {name: http, port: 80, targetPort: 80}
+  - {name: https, port: 443, targetPort: 443}
+EOF
+```
+
+### UNRESOLVED: pod-to-pod "Connection refused" (not "no route to host")
+Distinct from the firewalld issue above. Symptom: pod A can reach a service/host on the node fine, and the node can curl pod B directly and get a real HTTP response, but pod A curling pod B's IP directly gets `Connection refused` in ~0ms -- too fast to be a real network round trip. This blocks Rancher's internal HA peer mesh and breaks ingress-nginx/Traefik reaching the Rancher backend Service (manifests as a persistent `502`) even though Rancher itself is confirmed healthy (`curl` to the pod IP directly, from the node, returns `200`).
+
+Tried and **did not** fix it:
+- Confirming firewalld is on the `iptables` backend (it was)
+- Restarting the CNI pod (`kubectl -n kube-system delete pod -l k8s-app=canal`)
+- A full node reboot
+
+Encountered after a day of repeated full RKE2 install/uninstall cycles on the same RHEL install -- unconfirmed whether a from-scratch OS install avoids it. If it recurs: next step would be packet-level tracing (`tcpdump` on the relevant `cali*` veth plus `conntrack -L` while reproducing) rather than another config-level guess, since nft counters show the traffic being *accepted*, not dropped, which contradicts the symptom.
 
 
