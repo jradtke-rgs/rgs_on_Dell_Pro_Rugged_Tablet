@@ -144,7 +144,7 @@ k3s kubectl logs job/benchmark-job-cpu-mem | tee ~/Results/RHEL-10.2-K3s/sysbenc
 ### 1. RKE2 Installation
 **Important:** Wipe the OS and perform a fresh install of RHEL 10.2 to ensure there is no artifacting from K3s.
 
-**Prerequisite:** `post_install.sh` sets firewalld's backend to `iptables` before this runs. If you skip that step (or restore a snapshot from before it existed), do it before installing RKE2 -- otherwise pod-to-pod traffic gets silently blocked once you're running more than a single-pod workload (see Troubleshooting).
+**Prerequisite:** `post_install.sh` runs `systemctl disable --now firewalld` before this. If you skip that step (or restore a snapshot from before it existed), do it before installing RKE2 -- otherwise pod-to-pod traffic on the same node is silently REJECTed by firewalld's FORWARD chain once you run more than a single-pod workload. Setting `FirewallBackend=iptables` is **not** sufficient; the service has to be stopped. Full write-up: `Foo/Pod-to-Pod-Networking-Bug.md`.
 
 #### Install RKE2 (Rancher Kubernetes Engine 2)
 ```bash
@@ -189,6 +189,17 @@ This phase is identical regardless of which distribution is currently running �
 ```bash
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
+If piping a script to a root shell is blocked in your environment, install from the verified release tarball instead (this is what was used here — Helm **v4.2.4**):
+```bash
+cd /tmp
+VER=$(curl -fsSL https://api.github.com/repos/helm/helm/releases/latest | grep -oE '"tag_name": *"[^"]+"' | cut -d'"' -f4)
+curl -fsSLO "https://get.helm.sh/helm-${VER}-linux-amd64.tar.gz"
+curl -fsSLO "https://get.helm.sh/helm-${VER}-linux-amd64.tar.gz.sha256sum"
+sha256sum -c "helm-${VER}-linux-amd64.tar.gz.sha256sum"
+tar -xzf "helm-${VER}-linux-amd64.tar.gz"
+sudo install -m 0755 linux-amd64/helm /usr/local/bin/helm
+helm version
+```
 
 ### 2. Add the Rancher and Jetstack (cert-manager) Helm repos
 ```bash
@@ -198,12 +209,14 @@ helm repo update
 ```
 
 ### 3. Install cert-manager
-Rancher requires cert-manager for TLS unless you bring your own certificates.
+Rancher requires cert-manager for TLS unless you bring your own certificates. (Used here: cert-manager **v1.21.1**.)
 ```bash
 kubectl create namespace cert-manager
 helm install cert-manager jetstack/cert-manager \
   --namespace cert-manager \
   --set crds.enabled=true
+kubectl -n cert-manager rollout status deploy/cert-manager --timeout=180s
+kubectl -n cert-manager rollout status deploy/cert-manager-webhook --timeout=180s
 ```
 
 #### Verify cert-manager pods are running
@@ -212,35 +225,65 @@ kubectl get pods --namespace cert-manager
 ```
 
 ### 4. Install Rancher Manager
-Replace `rancher.example.local` with the hostname/IP you'll use to reach the UI, and choose a real bootstrap password.
-NOTE:  I created a DNS entry for this exercise
+Set `hostname=` to the DNS name you'll reach the UI on (a DNS A record for it must resolve to the node IP — one was created for this exercise), and choose a real bootstrap password. `replicas=3` is the chart default and is kept here deliberately — it exercises the pod-to-pod HA replica mesh, which is what surfaced the firewalld bug (see `Foo/Pod-to-Pod-Networking-Bug.md`). Used here: Rancher chart **2.15.1**.
 
 ```bash
 kubectl create namespace cattle-system
 helm install rancher rancher-latest/rancher \
   --namespace cattle-system \
   --set hostname=rancher-test.community.kubernerdes.com \
-  --set bootstrapPassword=admin123
+  --set bootstrapPassword=admin123 \
+  --set replicas=3
 ```
 
 #### Wait for the Rancher deployment to roll out
 ```bash
-kubectl -n cattle-system rollout status deploy/rancher
+kubectl -n cattle-system rollout status deploy/rancher --timeout=600s
+```
+With firewalld disabled (Phase 3 prerequisite) all 3 replicas go `Available` in well under a minute and the logs are free of `Failed to connect to peer wss://...` errors. If that rollout hangs, the pod-to-pod path is broken again — confirm `sudo systemctl is-active firewalld` is `inactive` before anything else.
+
+Shortly after Rancher is up it deploys its own operators (rancher-webhook, Fleet, gitjob). These can log errors / restart for the first 2-3 minutes while CRDs settle — `fleet` in particular may take a couple of retries on its `fleet-migrate-gitrepo-helm-url-regex` pre-upgrade hook before landing `deployed`. A couple of `helm-operation-*` pods may be left behind stuck at `1/2` (their `helm` container failed on an early retry, the proxy sidecar keeps the pod from completing); they are cosmetic — once `helm ls -A` shows every release `deployed`, clean them up:
+```bash
+kubectl -n cattle-system get pods | awk '/^helm-operation-/ && $3=="Error"{print $1}' \
+  | xargs -r kubectl -n cattle-system delete pod
 ```
 
 ### 5. Expose Traefik on the node (required for external access)
-**Confirmed on a from-scratch install** (not just this one instance): RKE2 v1.36.4+rke2r1 ships `rke2-traefik` as `type: ClusterIP` by default -- nothing binds the node's real interface out of the box, so the ingress/DNS/cert setup above is correct but unreachable from a browser until you patch it. RKE2's built-in ServiceLB is expected to pick up a `LoadBalancer`-type Service and bind the node automatically; on this hardware it hasn't (no `svclb-*` pod appears), but the patch still gets you a working NodePort even without it:
+RKE2 v1.36.4+rke2r1 ships `rke2-traefik` as `type: ClusterIP`, and RKE2's bundled ServiceLB (klipper) does not run on this hardware -- a `LoadBalancer`-type Service just sits at `EXTERNAL-IP: <pending>` with no `svclb-*` pod, so nothing binds the node's real `:80`/`:443`. The ingress/DNS/cert setup above is correct but unreachable from a browser until the node IP is put on the traefik Service.
+
+On a single node the clean fix is `externalIPs` (kube-proxy then DNATs `<node-ip>:{80,443}` -> traefik). Do it **durably** via a `HelmChartConfig` so the RKE2 helm-controller re-applies it on every reconcile, reboot, and RKE2 upgrade -- an imperative `kubectl patch svc` does not survive a reconcile:
+
 ```bash
-kubectl -n kube-system patch svc rke2-traefik -p '{"spec":{"type":"LoadBalancer"}}'
-kubectl -n kube-system get svc rke2-traefik
+sudo tee /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml >/dev/null <<'EOF'
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    service:
+      spec:
+        type: ClusterIP
+        externalIPs:
+          - 10.10.12.185          # <-- the node's primary IP
+EOF
 ```
-Note the allocated NodePort for `443` (e.g. `443:32051/TCP`) in the output. If an `EXTERNAL-IP` never appears (stays `<pending>`) and no `svclb-rke2-traefik-*` pod shows up under `kubectl -n kube-system get pods`, ServiceLB isn't reconciling on this box -- access via the NodePort instead: `https://<hostname>:<nodeport>/`.
+
+The helm-controller picks the file up within seconds (re-runs `helm-install-rke2-traefik`). Verify:
+```bash
+kubectl -n kube-system get helmchartconfig rke2-traefik
+kubectl -n kube-system get svc rke2-traefik    # EXTERNAL-IP should now show 10.10.12.185, PORT(S) 80/TCP,443/TCP
+```
+If the node IP ever changes, edit the address in this `rke2-traefik-config.yaml` and it re-applies -- do **not** edit the bundled `rke2-traefik.yaml` in the same directory, RKE2 overwrites that on every restart/upgrade. (An IP change also means an etcd-membership reset -- see Troubleshooting.)
 
 ### 6. Access Rancher
-Browse to `https://rancher-test.community.kubernerdes.com` (or `https://<hostname-or-IP>:<nodeport>/`, per step 5) and log in using the bootstrap password set above. You'll be prompted to set a new admin password and confirm the server URL on first login.
+Browse to **`https://rancher-test.community.kubernerdes.com/`** (no port) and log in with the bootstrap password from step 4. The certificate is Rancher's self-signed `dynamiclistener` CA -- click through the browser warning ("Advanced -> Proceed"). You'll be prompted to set a new admin password and confirm the server URL on first login.
 
-> [!WARNING]
-> **Known issue, not yet resolved:** After a fresh install, all 3 Rancher replica pods can sit for 15+ minutes with *neither* port 80 nor 443 bound inside the container (confirmed via `/proc/<pid>/net/tcp` on the node), even though `kubectl get pods` reports `1/1 Running` and a stable HA leader lease exists. Logs show continuous `Failed to connect to peer wss://... connect: connection refused` between replicas and repeated `Active TLS secret cattle-system/tls-rancher-internal` regeneration. Root cause not yet identified -- ruled out so far: firewalld/CNI blocking (fixed separately, confirmed via nft counters), host memory pressure (30Gi RAM, only ~8Gi used), and CCM instability (its 8 restarts lined up with the etcd `--cluster-reset` timestamp, not with this). If you hit this, check `kubectl -n cattle-system logs deploy/rancher --tail=30` and `/proc/<pid>/net/tcp` on the node for each `rancher` process before assuming it's just still starting up.
+Note: traefik routes by `Host:` header, so browsing by **IP** (`https://<node-ip>/`) returns `404 page not found` from traefik's default handler -- that's expected, use the DNS name.
+
+> [!NOTE]
+> **Previously logged here as an unresolved HA-mesh hang -- now resolved.** The symptom (all 3 `rancher` pods `1/1 Running` but neither `:80` nor `:443` bound inside the container, logs looping `Failed to connect to peer wss://... connect: connection refused`) was a downstream effect of the pod-to-pod networking bug: Rancher's replicas could not reach each other over the pod network. Root cause was **firewalld** (its FORWARD chain REJECTs pod-to-pod transit; `FirewallBackend=iptables` is *not* enough, the service must be stopped). With `systemctl disable --now firewalld` in place (Phase 3 prerequisite), a fresh 3-replica install rolls out clean in well under a minute. Full write-up: `Foo/Pod-to-Pod-Networking-Bug.md`.
 
 ### 7. Uninstall Rancher (between iterations)
 If you're re-running this phase against both K3s and RKE2 in turn, tear Rancher down before wiping/reinstalling the underlying cluster:
@@ -298,12 +341,18 @@ kubectl delete node <stale-node-name>
 kubectl get pods -A -o wide | grep -v -E 'Running|Completed'   # confirm everything reschedules onto the real node
 ```
 
-### firewalld nftables backend blocks pod-to-pod traffic
-`post_install.sh` now sets `FirewallBackend=iptables` up front, so this shouldn't recur -- but if you're troubleshooting an older/skipped setup: symptom is `dial tcp <pod-ip>:<port>: connect: no route to host` between pods **on the same node** (external ingress traffic and node-to-pod traffic can work fine while this is broken -- it specifically hits the FORWARD chain that pod-to-pod traffic traverses). Confirm via `sudo grep FirewallBackend /etc/firewalld/firewalld.conf`, then:
+### firewalld blocks pod-to-pod traffic on the same node (RESOLVED: disable firewalld)
+Symptom: pods on the same node cannot reach each other. Two signatures, same cause:
+- `dial tcp <pod-ip>:<port>: connect: no route to host` (firewalld on the `nftables` backend), or
+- `Connection refused` / `ICMP Protocol Unreachable` in ~0ms (firewalld on the `iptables-nft` backend).
+
+Host-to-pod and external ingress work fine throughout -- it specifically hits the FORWARD chain that pod-to-pod transit traverses, where firewalld's default policy REJECTs it.
+
+**`FirewallBackend=iptables` does not fix this** -- it only changes how the reject is written. The service has to be stopped:
 ```bash
-sudo sed -i 's/^FirewallBackend=.*/FirewallBackend=iptables/' /etc/firewalld/firewalld.conf
-sudo systemctl restart firewalld
+sudo systemctl disable --now firewalld
 ```
+This is Rancher's documented guidance for RKE2/K3s nodes and is what `post_install.sh` does. Full investigation (including the false-negative checks that sent this down a "kernel bug" rabbit hole): `Foo/Pod-to-Pod-Networking-Bug.md`.
 
 ### `rke2-uninstall.sh` location differs by install method
 The tar.gz-based RKE2 install (older docs, and `get.rke2.io` on non-RPM systems) puts the uninstall script at `/usr/local/bin/rke2-uninstall.sh`. On RHEL 10.2, `get.rke2.io` installs via `dnf`/RPM instead, which puts it at **`/usr/bin/rke2-uninstall.sh`**. Check both if one isn't found.
@@ -337,14 +386,9 @@ spec:
 EOF
 ```
 
-### UNRESOLVED: pod-to-pod "Connection refused" (not "no route to host")
-Distinct from the firewalld issue above. Symptom: pod A can reach a service/host on the node fine, and the node can curl pod B directly and get a real HTTP response, but pod A curling pod B's IP directly gets `Connection refused` in ~0ms -- too fast to be a real network round trip. This blocks Rancher's internal HA peer mesh and breaks ingress-nginx/Traefik reaching the Rancher backend Service (manifests as a persistent `502`) even though Rancher itself is confirmed healthy (`curl` to the pod IP directly, from the node, returns `200`).
+### pod-to-pod "Connection refused" in ~0ms (RESOLVED -- same firewalld cause as above)
+Was logged here as a distinct unresolved bug: pod A reaches services/hosts on the node fine, the node curls pod B directly and gets `200`, but pod A curling pod B's IP gets `Connection refused` in ~0ms. It blocked Rancher's HA peer mesh and produced a persistent `502` from Traefik to the Rancher backend.
 
-Tried and **did not** fix it:
-- Confirming firewalld is on the `iptables` backend (it was)
-- Restarting the CNI pod (`kubectl -n kube-system delete pod -l k8s-app=canal`)
-- A full node reboot
-
-Encountered after a day of repeated full RKE2 install/uninstall cycles on the same RHEL install -- unconfirmed whether a from-scratch OS install avoids it. If it recurs: next step would be packet-level tracing (`tcpdump` on the relevant `cali*` veth plus `conntrack -L` while reproducing) rather than another config-level guess, since nft counters show the traffic being *accepted*, not dropped, which contradicts the symptom.
+It is **not** distinct -- it is the `iptables-nft`-backend signature of the firewalld FORWARD REJECT covered in the entry above. What actually fixed it was `systemctl disable --now firewalld` (a full service stop). The earlier "tried and didn't fix it" list was misleading: confirming the `iptables` *backend* left the service running, and `nft list ruleset | grep reject` misses firewalld's `xt` REJECT target so the rule looked absent. See `Foo/Pod-to-Pod-Networking-Bug.md`.
 
 
