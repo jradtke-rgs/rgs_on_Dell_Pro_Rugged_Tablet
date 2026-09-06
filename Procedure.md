@@ -50,15 +50,16 @@ mkdir -p ~/Results/RHEL-10.2-RKE2
 
 #### CPU Benchmark (Calculates primes up to 20000 across 4 threads)
 ```bash
-echo "--- CPU TEST ---" | tee ~/Results/RHEL-10.2/sysbench-cpu-mem.out
-sysbench cpu --cpu-max-prime=20000 --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
+TODAY=$(date +%F)
+echo "--- CPU TEST ---" | tee ~/Results/RHEL-10.2/sysbench-cpu-mem-$TODAY.out
+sysbench cpu --cpu-max-prime=20000 --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem-$TODAY.out
 ```
 *(Record the "events per second" and "total time" in the Results Table)*
 
 #### Memory Benchmark (Tests read/write speed)
 ```bash
-echo "--- MEMORY TEST ---" | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
-sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem.out
+echo "--- MEMORY TEST ---" | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem-$TODAY.out
+sysbench memory --memory-block-size=1K --memory-total-size=10G --threads=4 run | tee -a ~/Results/RHEL-10.2/sysbench-cpu-mem-$TODAY.out
 ```
 *(Record the "MiB transferred" and "Total operations" in the Results Table)*
 
