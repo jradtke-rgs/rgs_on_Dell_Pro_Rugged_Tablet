@@ -4,6 +4,11 @@
 Will the primary IP of the device change?
 - if yes, what is the workaround?
 
+Will the applications be accessed via hostname (or IP, or both?)
+
+How do you handle Certificates in Docker/Podman?  
+NOTE: there is a certificate dependency (and integration) that will need to be addressed
+
 ## Notes, and Caveats
 * Currently there is an issue with RHEL 10 + firewalld when using Canal/Flannel.  At this time, firewalld will need to be disabled.
 
