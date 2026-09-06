@@ -1,12 +1,12 @@
 # Questions, Notes, and Caveats
 
 ## Questions
-Will the primary IP of the device change?
-- if yes, what is the workaround?
+- Will the primary IP of the device change?
+  - if yes, need to create a workaround?
 
-Will the applications be accessed via hostname (or IP, or both?)
+- Will the applications be accessed via hostname (or IP, or both?)
 
-How do you handle Certificates in Docker/Podman?  
+- How do you handle Certificates in Docker/Podman?  
 NOTE: there is a certificate dependency (and integration) that will need to be addressed
 
 ## Notes, and Caveats
