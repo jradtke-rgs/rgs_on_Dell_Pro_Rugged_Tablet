@@ -3,6 +3,7 @@
 ## Questions
 - Will the primary IP of the device change?
   - if yes, need to create a workaround?
+  - This is a design/architecture decision that likely will involve a "static" IP (as a VIP) or a VPN/mesh
 
 - Will the applications be accessed via hostname (or IP, or both?)
 
@@ -12,7 +13,11 @@ NOTE: there is a certificate dependency (and integration) that will need to be a
 ## Notes, and Caveats
 * Currently there is an issue with RHEL 10 + firewalld when using Canal/Flannel.  At this time, firewalld will need to be disabled.
 
-* Using Rancher Manager on a single-node RKE2 instance running on bare metal does not afford you the advantage of connecting Rancher to a provider for the **Full** Lifecycle Management of a Kubernetes cluster.  You can, however, deploy your own additional K3s/RKE2 clusters on the device and "Import Existing" - which then allows you to manage the cluster with Rancher - giving you all the other advantages.
+* Need to discuss that your team would like to explore Rancher Manager (hub-and-spoke) as a management/control-plane the individual tablet devices.  This provides capabilities:
+- single pane of glass for management 
+- multi-cluster management of your "fleet" and GitOps capabilities
+- RBAC and centralized authentication
+- Global Policy Enforcement and distribution enhancing security
 
 * Kubernetes will use an Ingress rather than the port mapping you might be accustomed to using docker/podman (see below).
 
