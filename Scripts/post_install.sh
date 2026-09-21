@@ -25,7 +25,6 @@ echo "$DAUSER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/$DAUSER-nopassw
 #sudo systemctl restart firewalld
 sudo systemctl disable firewalld --now
 
-
 ## Connect to RHC for updates, etc...
 RHC_USERNAME=
 RHC_PASSWORD=
@@ -41,7 +40,10 @@ sudo dnf repolist
 sudo dnf update -y
 
 # The following will keep trying (and eventually succeed) - You will need to quit (CTRL-C) once evertyhing is updated)
+# this is in a routine so that it does not run by default, but here in case you need it
+update_loop(){
 while true; do sudo dnf update -y; sleep 5; done
+}
 
 # 1. Enable CodeReady Builder (EPEL expects it)
 sudo subscription-manager repos --enable codeready-builder-for-rhel-10-x86_64-rpms
