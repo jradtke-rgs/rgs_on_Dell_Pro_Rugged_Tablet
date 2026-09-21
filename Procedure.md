@@ -127,7 +127,13 @@ EOF
 kubectl apply -f k3s-bench.yaml
 ```
 
-#### Wait for the job to complete, then view the results
+#### Wait for the Job's pod to finish before proceeding
+```bash
+k3s kubectl wait --for=condition=complete --timeout=1200s job/benchmark-job-cpu-mem
+```
+*(To watch live pod status while it runs, run `k3s kubectl get pods -w -l job-name=benchmark-job-cpu-mem` in another terminal.)*
+
+#### View the results
 ```bash
 k3s kubectl logs job/benchmark-job-cpu-mem | tee ~/Results/RHEL-10.2-K3s/sysbench-cpu-mem.out
 ```
@@ -174,7 +180,13 @@ Deploy the exact same job used in Phase 2.
 kubectl apply -f k3s-bench.yaml
 ```
 
-#### Wait for the job to complete, then view the results
+#### Wait for the Job's pod to finish before proceeding
+```bash
+kubectl wait --for=condition=complete --timeout=1200s job/benchmark-job-cpu-mem
+```
+*(To watch live pod status while it runs, run `kubectl get pods -w -l job-name=benchmark-job-cpu-mem` in another terminal.)*
+
+#### View the results
 ```bash
 kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-cpu-mem.out
 ```
