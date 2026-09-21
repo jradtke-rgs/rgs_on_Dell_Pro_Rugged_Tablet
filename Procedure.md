@@ -158,6 +158,7 @@ sudo systemctl start rke2-server.service
 #### Symlink kubectl for ease of use
 ```bash
 sudo ln -s /var/lib/rancher/rke2/bin/kubectl /usr/local/bin/kubectl
+mkdir ~/.kube
 sudo cat /etc/rancher/rke2/rke2.yaml | tee ~/.kube/config
 export KUBECONFIG=~/.kube/config
 ```
