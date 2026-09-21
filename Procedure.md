@@ -196,6 +196,9 @@ kubectl logs job/benchmark-job-cpu-mem  | tee ~/Results/RHEL-10.2-RKE2/sysbench-
 
 ## Phase 4: Rancher Manager Installation (Common to K3s and RKE2)
 
+>[!NOTE]
+> It is not likely that Rancher Manager will be run on the Tablet, and instead be run elsewhere but attach to the device.
+
 This phase is identical regardless of which distribution is currently running — Rancher Manager is deployed via Helm on top of whichever cluster (K3s or RKE2) is up at the time. Run this after standing up either cluster if you want to evaluate Rancher's management overhead alongside the raw sysbench/fio numbers.
 
 ### 1. Install Helm
